@@ -159,6 +159,13 @@ export const reportApi = {
 
 export { setAccessToken };
 
+// Generic API helper
+export const api = async (path: string, options: RequestInit = {}) => {
+  const res = await apiFetch(path, options);
+  const data = await res.json().catch(() => ({}));
+  return { ok: res.ok, data };
+};
+
 export const aiApi = {
   async uploadImage(file: File) {
     const formData = new FormData();

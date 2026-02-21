@@ -10,6 +10,7 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import commentRoutes from "./routes/commentRoutes.js";
 import { verifyToken } from "./middleware/authMiddleware.js";
 
 dotenv.config();
@@ -58,6 +59,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/notifications", verifyToken, notificationRoutes);
 app.use("/api/ai", verifyToken, aiRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/comments", commentRoutes);
 app.use("/api/admin", verifyToken, adminRoutes);
 
 

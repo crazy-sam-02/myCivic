@@ -1,8 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Issue, IssueStatus } from '@/types/issue';
 import { getStatusClass, formatDate } from '@/lib/helpers';
-import { X, MapPin, Calendar, AlertTriangle, Building2, Upload, Loader2 } from 'lucide-react';
-import { aiApi } from '@/lib/api';
+import { X, MapPin, Calendar, AlertTriangle, Building2, Upload, Loader2, MessageCircle, Trash2 } from 'lucide-react';
+import { aiApi, api } from '@/lib/api';
 
 interface IssueDetailModalProps {
   issue: Issue;
@@ -17,6 +17,10 @@ const IssueDetailModal = ({ issue, onClose, isAdmin = false, onStatusChange, onS
   const [proofImage, setProofImage] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [isResolving, setIsResolving] = useState(false);
+  const [comments, setComments] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [isLoadingComments, setIsLoadingComments] = useState(true);
+  const [isAddingComment, setIsAddingComment] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const severityCounts = issue.severityVotes || { low: 0, medium: 0, high: 0, critical: 0 };
   const severityOptions = [
@@ -25,6 +29,68 @@ const IssueDetailModal = ({ issue, onClose, isAdmin = false, onStatusChange, onS
     { label: 'High', key: 'high' },
     { label: 'Critical', key: 'critical' },
   ] as const;
+
+  // Fetch comments
+  useEffect(() => {
+    const fetchComments = async () => {
+      try {
+        setIsLoadingComments(true);
+        const response = await api('/api/comments/report/' + issue.id);
+        if (response.ok && response.data?.comments) {
+          setComments(response.data.comments);
+        }
+      } catch (error) {
+        console.error('Error fetching comments:', error);
+      } finally {
+        setIsLoadingComments(false);
+      }
+    };
+
+    fetchComments();
+  }, [issue.id]);
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+
+    setIsAddingComment(true);
+    try {
+      const response = await api(`/api/comments/report/${issue.id}`, {
+        method: 'POST',
+        body: JSON.stringify({ text: newComment }),
+      });
+
+      if (response.ok && response.data?.comment) {
+        setComments([response.data.comment, ...comments]);
+        setNewComment('');
+      } else {
+        alert(response.data?.message || 'Failed to add comment');
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      alert('Error adding comment');
+    } finally {
+      setIsAddingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!confirm('Delete this comment?')) return;
+
+    try {
+      const response = await api(`/api/comments/${commentId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setComments(comments.filter(c => c._id !== commentId));
+      } else {
+        alert(response.data?.message || 'Failed to delete comment');
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      alert('Error deleting comment');
+    }
+  };
 
   const handleProofImageSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -130,6 +196,66 @@ const IssueDetailModal = ({ issue, onClose, isAdmin = false, onStatusChange, onS
           )}
 
           <p className="text-xs text-muted-foreground">Reported by <span className="font-semibold text-foreground">{issue.reporterName}</span></p>
+
+          {/* Comments Section */}
+          <div className="pt-3 border-t border-border space-y-3">
+            <div className="flex items-center gap-2">
+              <MessageCircle size={16} className="text-primary" />
+              <h3 className="font-semibold text-foreground text-sm">Comments ({comments.length})</h3>
+            </div>
+
+            {/* Add Comment */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newComment}
+                onChange={e => setNewComment(e.target.value)}
+                placeholder="Add a comment..."
+                maxLength={500}
+                className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all text-sm"
+              />
+              <button
+                onClick={handleAddComment}
+                disabled={isAddingComment || !newComment.trim()}
+                className="px-4 h-10 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-60 transition-all flex items-center justify-center gap-2"
+              >
+                {isAddingComment ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  'Post'
+                )}
+              </button>
+            </div>
+
+            {/* Comments List */}
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {isLoadingComments ? (
+                <div className="flex justify-center py-3">
+                  <Loader2 size={16} className="animate-spin text-muted-foreground" />
+                </div>
+              ) : comments.length === 0 ? (
+                <p className="text-center text-xs text-muted-foreground py-3">No comments yet. Be the first to comment!</p>
+              ) : (
+                comments.map(comment => (
+                  <div key={comment._id} className="bg-muted/50 rounded-lg p-2.5 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-foreground">{comment.author?.username || 'Anonymous'}</span>
+                      <button
+                        onClick={() => handleDeleteComment(comment._id)}
+                        className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                    <p className="text-xs text-foreground leading-relaxed">{comment.text}</p>
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(comment.createdAt).toLocaleDateString()} {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
 
           {/* Show Resolution Details if Resolved */}
           {issue.status === 'Resolved' && (
