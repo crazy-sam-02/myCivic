@@ -1,73 +1,143 @@
-# Welcome to your Lovable project
+# Civic Report Connect
 
-## Project info
+This repository contains two separate apps:
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+- `civic-report-connect-main/` - the frontend built with Vite, React, TypeScript, and Tailwind CSS
+- `backend/` - the Express + MongoDB API server
 
-## How can I edit this code?
+## Prerequisites
 
-There are several ways of editing your application.
+Before installing the project, make sure you have:
 
-**Use Lovable**
+- Node.js installed
+- npm installed
+- a MongoDB database URI
+- Cloudinary credentials
+- a Hugging Face token for the AI endpoints
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+If you do not already have Node.js installed, the simplest option is to install it through [nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
 
-Changes made via Lovable will be committed automatically to this repo.
+## 1. Clone the repository
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Clone the GitHub repository to your local machine, then open the project folder:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+git clone <YOUR_GITHUB_REPO_URL>
+cd myCivic
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+If you already downloaded the source code another way, just open the `myCivic` folder in your editor.
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 2. Install the frontend
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+The frontend lives in [civic-report-connect-main](civic-report-connect-main).
+
+```sh
+cd civic-report-connect-main
+npm install
+```
+
+After installation finishes, you can start the frontend development server with:
+
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The Vite dev server usually runs at `http://localhost:5173`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Frontend environment variable
 
-**Use GitHub Codespaces**
+The frontend reads the API base URL from `VITE_API_BASE_URL` in [src/lib/api.ts](src/lib/api.ts). If you do not set it, the app automatically falls back to `http://localhost:5000`.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+If you want to create a local `.env` file for the frontend, it can contain:
 
-## What technologies are used for this project?
+```env
+VITE_API_BASE_URL=http://localhost:5000
+```
 
-This project is built with:
+## 3. Install the backend
+
+The backend lives in [backend](backend) and must be installed separately.
+
+Open a second terminal, then run:
+
+```sh
+cd backend
+npm install
+```
+
+Start the backend server with:
+
+```sh
+npm run dev
+```
+
+By default, the backend starts on port `5000`.
+
+## 4. Configure backend environment variables
+
+The backend will not work correctly until its `.env` file is configured.
+
+Create a file named `.env` inside the [backend](backend) folder and add the required values:
+
+```env
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRECT_KEY=your_access_token_secret
+JWT_REFRESH_SECRET=your_refresh_token_secret
+HF_TOKEN=your_hugging_face_token
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+```
+
+Important notes:
+
+- `MONGO_URI` is used in [backend/db/db.js](backend/db/db.js) to connect to MongoDB.
+- `JWT_SECRECT_KEY` and `JWT_REFRESH_SECRET` are used for authentication in [backend/controllers/Auth/authController.js](backend/controllers/Auth/authController.js).
+- `HF_TOKEN` is required by [backend/controllers/aiController.js](backend/controllers/aiController.js) for image description and categorization.
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` are required by [backend/utils/cloudinaryUploader.js](backend/utils/cloudinaryUploader.js) for image uploads.
+
+## 5. Run both apps together
+
+Use two terminals:
+
+```sh
+# Terminal 1
+cd civic-report-connect-main
+npm run dev
+```
+
+```sh
+# Terminal 2
+cd backend
+npm run dev
+```
+
+Once both servers are running:
+
+- open the frontend in your browser at the Vite URL
+- confirm the backend health endpoint works at `http://localhost:5000/api/health`
+
+## 6. Optional checks
+
+The frontend also provides these scripts:
+
+```sh
+npm run lint
+npm run test
+```
+
+## Technologies
+
+This project uses:
 
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- Express
+- MongoDB
+- Cloudinary
+- Hugging Face inference APIs
